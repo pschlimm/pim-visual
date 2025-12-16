@@ -1,0 +1,316 @@
+<!doctype html>
+<html lang="de">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>PIM Data Journey</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&family=Space+Grotesk:wght@500;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="style.css" />
+    <script crossorigin src="https://unpkg.com/react@18/umd/react.development.js"></script>
+    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+  </head>
+  <body>
+    <div id="root"></div>
+
+    <script type="text/babel">
+      const { useMemo, useState, useEffect } = React;
+
+      const payloadColors = ["#7c3aed", "#06b6d4", "#22c55e", "#f97316", "#e11d48"];
+
+      const Section = ({ title, subtitle, children, accent }) => (
+        <section className="panel" style={{ borderColor: accent }}>
+          <header className="panel__head">
+            <div className="pill" style={{ background: accent }}>{title}</div>
+            <p className="panel__sub">{subtitle}</p>
+          </header>
+          {children}
+        </section>
+      );
+
+      const PayloadStream = ({ count = 10, color, duration = 10 }) => (
+        <div className="stream">
+          {Array.from({ length: count }).map((_, index) => (
+            <span
+              key={index}
+              className="payload"
+              style={{
+                background: color,
+                animationDuration: `${duration}s`,
+                animationDelay: `${index * (duration / count)}s`
+              }}
+            />
+          ))}
+        </div>
+      );
+
+      const FlowCard = ({ title, description, tags = [], accent }) => (
+        <div className="flow-card" style={{ borderColor: accent }}>
+          <div className="flow-card__title">{title}</div>
+          <p className="flow-card__desc">{description}</p>
+          <div className="tag-row">
+            {tags.map((tag) => (
+              <span className="tag" key={tag}>{tag}</span>
+            ))}
+          </div>
+        </div>
+      );
+
+      const DepartmentBoard = ({ departments }) => {
+        const [states, setStates] = useState(
+          Object.fromEntries(departments.map((dept) => [dept.name, dept.ready]))
+        );
+
+        const toggle = (name) => {
+          setStates((prev) => ({ ...prev, [name]: !prev[name] }));
+        };
+
+        return (
+          <div className="dept-grid">
+            {departments.map((dept) => {
+              const ready = states[dept.name];
+              return (
+                <div
+                  key={dept.name}
+                  className={`dept-card ${ready ? "dept-card--ready" : "dept-card--missing"}`}
+                >
+                  <div className="dept-card__header">
+                    <div className="dot" />
+                    <div>
+                      <div className="dept-card__title">{dept.name}</div>
+                      <small>{dept.focus}</small>
+                    </div>
+                  </div>
+                  <ul className="dept-card__list">
+                    {dept.tasks.map((task) => (
+                      <li key={task}>{task}</li>
+                    ))}
+                  </ul>
+                  <div className="dept-card__footer">
+                    <span className={`status ${ready ? "status--ok" : "status--alert"}`}>
+                      {ready ? "✓ Beitrag liefert Daten" : "⚠️ Daten fehlen"}
+                    </span>
+                    <button onClick={() => toggle(dept.name)}>
+                      {ready ? "Fehler simulieren" : "Aufgabe erledigt"}
+                    </button>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        );
+      };
+
+      const ScenarioLane = ({ destinations }) => (
+        <div className="scenario-lane">
+          {destinations.map((dest, index) => (
+            <div key={dest.name} className="scenario-card" style={{ borderColor: payloadColors[index % payloadColors.length] }}>
+              <div className="scenario-card__head">
+                <div className="pill" style={{ background: payloadColors[index % payloadColors.length] }}>
+                  Ausleitung
+                </div>
+                <strong>{dest.name}</strong>
+              </div>
+              <p className="scenario-card__desc">{dest.purpose}</p>
+              <div className="tag-row">
+                {dest.requirements.map((req) => (
+                  <span key={req} className="tag">{req}</span>
+                ))}
+              </div>
+              <div className="scenario-card__footer">
+                <span className="status status--ok">{dest.frequency}</span>
+                <PayloadStream count={8} color={payloadColors[index % payloadColors.length]} duration={12} />
+              </div>
+            </div>
+          ))}
+        </div>
+      );
+
+      const DataJourney = () => {
+        const departments = useMemo(() => [
+          {
+            name: "Einkauf",
+            focus: "Preise, Konditionen",
+            tasks: ["EK/Kalkulation", "Lieferantenkonditionen", "Spareparts Kosten"],
+            ready: true
+          },
+          {
+            name: "Logistik",
+            focus: "Pack- & Transportlogik",
+            tasks: ["Packschema", "Palettierung", "Gefahrgut Hinweise"],
+            ready: true
+          },
+          {
+            name: "Werk",
+            focus: "Technische Stammdaten",
+            tasks: ["Nettomaße", "Ersatzteile", "WEEE & Entsorgung"],
+            ready: false
+          },
+          {
+            name: "Vertrieb",
+            focus: "Vertriebssicht & Texte",
+            tasks: ["Vertriebstexte", "Rad-/Schienenabstand", "Marktanforderungen"],
+            ready: false
+          },
+          {
+            name: "QS",
+            focus: "Qualitätssicherung",
+            tasks: ["Sicherheitsnachweise", "Prüfungen", "Freigaben"],
+            ready: true
+          },
+          {
+            name: "Produktmanagement",
+            focus: "Produktwissen & Vision",
+            tasks: ["Alleinstellungsmerkmale", "Produktstory", "Roadmap"] ,
+            ready: true
+          }
+        ], []);
+
+        const destinations = useMemo(() => [
+          { name: "SAP", purpose: "Stammdaten + Preise für ERP & Finanz", frequency: "Bidirektional", requirements: ["Preislogik", "Vertriebsrechte", "Verfügbarkeit"] },
+          { name: "Shopify", purpose: "Shop + DAM Assets (inkl. Übersetzung via DeepL/Transcy)", frequency: "Live Sync", requirements: ["Medien", "Marketingtexte", "Translations"] },
+          { name: "Apollo → TecDoc (CAT)", purpose: "Fahrzeugzuordnung für Werkstätten", frequency: "Wöchentlich", requirements: ["Fahrzeugmapping", "Kompatibilität"] },
+          { name: "Marktplätze (Amazon & Co.)", purpose: "PIM Kern + Fahrzeug + DAM", frequency: "Täglich", requirements: ["Trusted Data", "Varianten", "Bilder"] },
+          { name: "Listing Sheets (Obi, Stahlgruber, ATU, Sportega)", purpose: "Kuratiertes Exportpaket", frequency: "On Demand", requirements: ["Kanaltemplates", "Validierung"] }
+        ], []);
+
+        return (
+          <div className="page">
+            <div className="hero">
+              <div>
+                <p className="eyebrow">PIM Data Journey</p>
+                <h1>Vom PDM bis zum Markt – ein transparenter Datenstrom</h1>
+                <p className="lede">
+                  Visualisiertes Daten-Ökosystem, das jede Abteilung zeigt, wie ihr Beitrag den Produktdatenfluss stabil hält.
+                  Animierte Payloads machen sichtbar, wohin Stammdaten, Medien und Übersetzungen fließen – und wann etwas fehlt.
+                </p>
+                <div className="hero__badges">
+                  <span className="pill">Payload Animationen</span>
+                  <span className="pill pill--ghost">Abteilungs-Pflichten</span>
+                  <span className="pill pill--ghost">Ausleitungs-Szenarien</span>
+                </div>
+              </div>
+              <div className="hero__viz">
+                <div className="hero__viz-row">
+                  <FlowCard
+                    title="PDM → PIM Core"
+                    description="Technische Grunddaten bilden den Ursprung."
+                    tags={["Stammdaten", "Produktwissen"]}
+                    accent="#7c3aed"
+                  />
+                  <PayloadStream count={16} color="#7c3aed" duration={9} />
+                  <FlowCard
+                    title="Qualitäts-Checker"
+                    description="Validiert Daten & leitet nur saubere Payloads weiter."
+                    tags={["Validation Rules", "Auto-Freigabe"]}
+                    accent="#22c55e"
+                  />
+                </div>
+                <div className="hero__viz-row">
+                  <FlowCard
+                    title="PIM Core"
+                    description="Single Source mit Marketing-, Vertrieb- & Benutzerinfos."
+                    tags={["DAM", "TD Dokumentation", "Marketing Cloud"]}
+                    accent="#06b6d4"
+                  />
+                  <PayloadStream count={10} color="#06b6d4" duration={11} />
+                  <FlowCard
+                    title="SAP & Shopify"
+                    description="ERP & Commerce werden bidirektional versorgt, inkl. Übersetzungen."
+                    tags={["DeepL/Transcy", "Preis- & Bestandsfeeds"]}
+                    accent="#f59e0b"
+                  />
+                </div>
+              </div>
+            </div>
+
+            <Section
+              title="Abteilungsbeiträge"
+              subtitle="Jedes fehlende Puzzleteil wird sofort sichtbar – Payloads halten erst nach vollständiger Befüllung ihre Route."
+              accent="#7c3aed"
+            >
+              <DepartmentBoard departments={departments} />
+            </Section>
+
+            <Section
+              title="Datenströme & Quellen"
+              subtitle="PDM + Technische Dokumentation + Marketing DAM treffen im PIM zusammen, bevor SAP, Shopify und Apollo beliefert werden."
+              accent="#06b6d4"
+            >
+              <div className="flow-grid">
+                <FlowCard
+                  title="Upstream"
+                  description="PDM liefert Stammdaten, technische Dokumentation ergänzt Benutzerinfos, Marketing Cloud liefert DAM Assets."
+                  tags={["PDM", "TechDok", "Marketing DAM"]}
+                  accent="#0ea5e9"
+                />
+                <FlowCard
+                  title="PIM Core"
+                  description="Kombiniert Kernstammdaten mit Marketing-, Vertriebs- und Benutzerinhalten und reichert sie manuell an."
+                  tags={["Marketingdaten", "Vertrieb", "Produktwissen", "Fahrzeugzuordnung"]}
+                  accent="#a855f7"
+                />
+                <FlowCard
+                  title="Qualitäts-Checker"
+                  description="Automatische Validierung vor der Weiterleitung in SAP und alle Kanäle."
+                  tags={["Vollständigkeit", "Regelwerk", "Auto-Pass"]}
+                  accent="#22c55e"
+                />
+                <FlowCard
+                  title="SAP & Downstream"
+                  description="SAP erhält freigegebene Daten; Shopify bekommt PIM + DAM + Übersetzungen; Apollo verteilt Fahrzeugdaten an TecDoc & Händler."
+                  tags={["SAP", "Shopify", "Apollo/TecDoc", "Amazon & Co"]}
+                  accent="#f97316"
+                />
+              </div>
+              <div className="flow-rails">
+                {payloadColors.map((color, index) => (
+                  <PayloadStream key={index} count={12} color={color} duration={12 + index * 2} />
+                ))}
+              </div>
+            </Section>
+
+            <Section
+              title="Ausleitungs-Szenarien"
+              subtitle="Jeder Kanal zeigt, welche Datenpakete er braucht – fehlende Abteilungsbeiträge blockieren die Payloads."
+              accent="#f97316"
+            >
+              <ScenarioLane destinations={destinations} />
+            </Section>
+
+            <Section
+              title="Warum die Extra-Meile?"
+              subtitle="Jede Abteilung sieht sofort den Impact: fehlende Inhalte stoppen den Fluss, vollständige Payloads liefern Wachstum."
+              accent="#22c55e"
+            >
+              <div className="impact-grid">
+                <FlowCard
+                  title="Payload ready?"
+                  description="Nur valide, angereicherte Pakete passieren den Qualitäts-Checker und erreichen SAP, Shopify & Listings."
+                  tags={["Sauberkeit", "Geschwindigkeit"]}
+                  accent="#22c55e"
+                />
+                <FlowCard
+                  title="Transparente Rückmeldungen"
+                  description="Jede Abteilung sieht, was fehlt – und wie schnell ihre Aufgaben den Marktstart ermöglichen."
+                  tags={["Visibility", "Ownership"]}
+                  accent="#06b6d4"
+                />
+                <FlowCard
+                  title="Marktabdeckung"
+                  description="PIM + DAM + Vehicle Data ermöglichen Amazon, Obi, Stahlgruber & Werkstätten zuverlässig zu bedienen."
+                  tags={["Channel Fit", "Mehr Umsatz"]}
+                  accent="#f59e0b"
+                />
+              </div>
+            </Section>
+          </div>
+        );
+      };
+
+      ReactDOM.createRoot(document.getElementById("root")).render(<DataJourney />);
+    </script>
+  </body>
+</html>
